@@ -173,6 +173,21 @@ abstract class AbstractConsole
 
         return $this->removeNotASCIISymbols($buffer);
     }
+
+    /**
+     * Executes command and doesn't treat the response
+     * This method is a wrapper for lower level private methods
+     *
+     * @param string $command Command to execute
+     * @param boolean $add_newline Default true, adds newline to the command
+     * @return string Command result
+     */
+    public function execWithoutResponse($command, $add_newline = true)
+    {
+        $this->write($command, $add_newline);
+        return true;
+    }
+
     /**
      * Executes command and returns a string with result.
      * Waiting to return with stream timeout
