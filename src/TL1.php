@@ -5,18 +5,18 @@ namespace Meklis\Network\Console;
 use Meklis\Network\Console\Helpers\DefaultHelperInterface;
 
 /**
- * Telnet class
+ * TL1 class
  *
- * Used to execute remote commands via telnet connection
+ * Used to execute remote commands via tl1 connection
  * Usess sockets functions and fgetc() to process result
  *
  * All methods throw Exceptions on error
  */
-class Telnet extends AbstractConsole implements ConsoleInterface
+class TL1 extends AbstractConsole implements ConsoleInterface
 {
     protected $socket = null;
 
-    public function connect($host, $port = 23, ?DefaultHelperInterface $helper = null)
+    public function connect($host, $port = 1023, ?DefaultHelperInterface $helper = null)
     {
         if ($helper) {
             $this->helper = $helper;
@@ -33,18 +33,23 @@ class Telnet extends AbstractConsole implements ConsoleInterface
                 $this->host = $ip;
             }
         }
+
         if ($this->helper->getEol()) {
             $this->eol = $this->helper->getEol();
         }
+
         if ($this->helper->getPrompt()) {
             $this->prompt = $this->helper->getPrompt();
         }
+
         $this->enableMagicControl = $this->helper->isEnableMagicControl();
+
         // attempt connection - suppress warnings
         $this->socket = @fsockopen($this->host, $this->port, $this->errno, $this->errstr, $this->timeout);
         if (!$this->socket) {
             throw new \Exception("Cannot connect to $this->host on port $this->port");
         }
+
         if ($sizes = $this->helper->getWindowSize()) {
             $this->setWindowSize($sizes[0], $sizes[1]);
         }
@@ -108,26 +113,20 @@ class Telnet extends AbstractConsole implements ConsoleInterface
     public function login($username, $password)
     {
         try {
-            // username
-            if (!empty($username)) {
-                $this->setRegexPrompt($this->helper->getUserPrompt());
-                $this->waitPrompt();
-                $this->write(trim($username));
-            }
+            $loginCommands = $this->helper->getLoginCommands($username, $password);
 
-            // password
-            $this->setRegexPrompt($this->helper->getPasswordPrompt());
-            $this->waitPrompt();
-            $this->write(trim($password));
+            if ($loginCommands && count($loginCommands) > 0) {
+                foreach ($loginCommands as $loginCommand) {
+                    $command = $loginCommand['command'];
+                    $prompt = $loginCommand['prompt'];
+
+                    $this->setRegexPrompt($prompt);
+                    $this->write(trim($command));
+                }
+            }
 
             $this->setRegexPrompt($this->helper->getPrompt());
             $this->waitPrompt();
-            if ($this->helper->isDoubleLoginPrompt()) {
-                try {
-                    $this->waitPrompt('', 1);
-                } catch (\Exception $e) {
-                }
-            }
         } catch (\Exception $e) {
             throw new \Exception("Login failed. {$e->getMessage()}");
         }
@@ -171,6 +170,7 @@ class Telnet extends AbstractConsole implements ConsoleInterface
         $this->clearBuffer();
         $until_t = time() + $this->timeout;
         $eofDetected = 0;
+
         do {
             // time's up (loop can be exited at end or through continue!)
             if (time() > $until_t) {

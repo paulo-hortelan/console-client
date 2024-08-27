@@ -2,7 +2,7 @@
 
 namespace Meklis\Network\Console;
 
-use Meklis\Network\Console\Helpers\HelperInterface;
+use Meklis\Network\Console\Helpers\DefaultHelperInterface;
 
 class SSH extends AbstractConsole
 {
@@ -15,7 +15,7 @@ class SSH extends AbstractConsole
         parent::__construct($timeout, $stream_timeout);
     }
 
-    public function connect($host, $port = 22, HelperInterface $helper = null)
+    public function connect($host, $port = 22, ?DefaultHelperInterface $helper = null)
     {
         if ($helper) {
             $helper->setConnectionType("ssh");
@@ -37,19 +37,14 @@ class SSH extends AbstractConsole
         $originalConnectionTimeout = ini_get('default_socket_timeout');
         ini_set('default_socket_timeout', 5);
         $methods = [
-            'hostkey' => 'ssh-rsa,ssh-dss',
-            'kex' => 'diffie-hellman-group1-sha1,diffie-hellman-group14-sha1,diffie-hellman-group-exchange-sha1,diffie-hellman-group-exchange-sha256',
-            'client_to_server' => [
-                'crypt' => 'aes256-ctr,aes192-ctr,aes128-ctr,aes256-cbc,aes192-cbc,aes128-cbc,3des-cbc,blowfish-cbc,cast128-cbc,arcfour,arcfour128,none',
-                'comp' => 'none'],
-            'server_to_client' => [
-                'crypt' => 'aes256-ctr,aes192-ctr,aes128-ctr,aes256-cbc,aes192-cbc,aes128-cbc,3des-cbc,blowfish-cbc,cast128-cbc,arcfour,arcfour128,none',
-                'comp' => 'none']];
+            'hostkey' => 'ecdsa-sha2-nistp256,ssh-rsa',
+        ];
 
         $ssh = ssh2_connect($this->host, $this->port, $methods);
         if (!$ssh) {
             throw new \Exception("Error connect");
         }
+
         ini_set('default_socket_timeout', $originalConnectionTimeout);
         if ($this->helper->getEol()) {
             $this->eol = $this->helper->getEol();
@@ -62,6 +57,7 @@ class SSH extends AbstractConsole
         }
 
         $this->connection = $ssh;
+
         return $this;
     }
 
@@ -72,18 +68,18 @@ class SSH extends AbstractConsole
             $high = $sizes[1];
             $sizeType = SSH2_TERM_UNIT_CHARS;
         } else {
-            $wide = null;
-            $high = null;
-            $sizeType = null;
+            $wide = 0;
+            $high = 0;
+            $sizeType = 0;
         }
 
         if (!ssh2_auth_password($this->connection, $username, $password)) {
             throw new \Exception("Error auth");
         }
-        $this->session = ssh2_shell($this->connection, null, null, $wide, $high, $sizeType);
+        $this->session = ssh2_shell($this->connection, '', null, $wide, $high, $sizeType);
 
         try {
-            $this->waitPrompt( );
+            $this->waitPrompt();
             if ($this->helper->isDoubleLoginPrompt()) {
                 try {
                     $this->waitPrompt('', 0.2);
@@ -97,10 +93,10 @@ class SSH extends AbstractConsole
     }
 
     /**
-     * @param HelperInterface $helper
+     * @param DefaultHelperInterface $helper
      * @return $this
      */
-    function setDeviceHelper(HelperInterface $helper)
+    function setDeviceHelper(DefaultHelperInterface $helper)
     {
         $this->helper = $helper;
         if ($this->helper->getEol()) {
@@ -111,6 +107,7 @@ class SSH extends AbstractConsole
         }
         $this->enableMagicControl = $this->helper->isEnableMagicControl();
         $this->helper->setConnectionType("ssh");
+
         return $this;
     }
 
@@ -167,7 +164,7 @@ class SSH extends AbstractConsole
      */
     protected function getc($timeoutSec = null)
     {
-        if($timeoutSec) {
+        if ($timeoutSec) {
             $ts = $timeoutSec;
         } else {
             $ts = $this->stream_timeout_sec;
@@ -203,7 +200,7 @@ class SSH extends AbstractConsole
 
         $until_t = time() + $this->timeout;
 
-        if($this->helper->getWaitingResponseTimeout()) {
+        if ($this->helper->getWaitingResponseTimeout()) {
             $timeout = $this->helper->getWaitingResponseTimeout();
             $prompt = '';
         }
@@ -232,14 +229,13 @@ class SSH extends AbstractConsole
             $this->buffer .= $c;
 
             $latestBytes = $this->removeNotASCIISymbols(substr($this->buffer, -70));
-            if($this->detectPagination()) {
+            if ($this->detectPagination()) {
                 continue;
             }
             // we've encountered the prompt. Break out of the loop
             if (!empty($prompt) && preg_match("/{$prompt}/m", trim($latestBytes))) {
                 return $this;
             }
-
         } while ($c != $this->NULL || $c != $this->DC1);
         return null;
     }

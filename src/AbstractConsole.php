@@ -3,7 +3,7 @@
 namespace Meklis\Network\Console;
 
 use Meklis\Network\Console\Helpers\DefaultHelper;
-use Meklis\Network\Console\Helpers\HelperInterface;
+use Meklis\Network\Console\Helpers\DefaultHelperInterface;
 
 abstract class AbstractConsole
 {
@@ -13,7 +13,7 @@ abstract class AbstractConsole
     protected $stream_timeout_sec;
 
     /**
-     * @var HelperInterface
+     * @var DefaultHelperInterface
      */
     protected $helper;
 
@@ -69,20 +69,23 @@ abstract class AbstractConsole
     }
 
     /**
-     * @param HelperInterface $helper
+     * @param DefaultHelperInterface $helper
      * @return $this
      */
-    function setDeviceHelper(HelperInterface $helper)
+    function setDeviceHelper(DefaultHelperInterface $helper)
     {
         $this->helper = $helper;
 
         if ($this->helper->getEol()) {
             $this->eol = $this->helper->getEol();
         }
+
         if ($this->helper->getPrompt()) {
             $this->prompt = $this->helper->getPrompt();
         }
+
         $this->enableMagicControl = $this->helper->isEnableMagicControl();
+
         return $this;
     }
 
@@ -97,8 +100,8 @@ abstract class AbstractConsole
         try {
             $this->disconnect();
         } catch (\Throwable $e) {
-
         }
+
         $this->buffer = null;
     }
 
@@ -158,13 +161,16 @@ abstract class AbstractConsole
     {
         $this->write($command, $add_newline);
         $this->waitPrompt($prompt);
+
         $buffer =  $this->getBuffer();
-        if($lines = explode("\n", $buffer)) {
-            if(isset($lines[0]) && trim($command) && strpos($lines[0], $command) !== false) {
+        if ($lines = explode("\n", $buffer)) {
+            if (isset($lines[0]) && trim($command) && strpos($lines[0], $command) !== false) {
                 unset($lines[0]);
             }
+
             return  $this->removeNotASCIISymbols(implode("\n", $lines));
         }
+
         return $this->removeNotASCIISymbols($buffer);
     }
     /**
@@ -179,27 +185,33 @@ abstract class AbstractConsole
     {
         $this->write($command, $add_newline);
         $this->waitPrompt('', $timeoutStream);
+
         $buffer =  $this->getBuffer();
-        if($lines = explode("\n", $buffer)) {
-            if(isset($lines[0]) && trim($command) && strpos($lines[0], $command) !== false) {
+        if ($lines = explode("\n", $buffer)) {
+            if (isset($lines[0]) && trim($command) && strpos($lines[0], $command) !== false) {
                 unset($lines[0]);
             }
+
             return  $this->removeNotASCIISymbols(implode("\n", $lines));
         }
+
         return $this->removeNotASCIISymbols($buffer);
     }
 
     protected function removeNotASCIISymbols($chars)
     {
         if (!mb_detect_encoding($chars, 'ASCII', true)) {
+
             $chars = str_split($chars);
             foreach ($chars as $num => $char) {
                 if (!mb_detect_encoding($char, 'ASCII', true)) {
                     unset($chars[$num]);
                 }
             }
-            return implode('',$chars);
+
+            return implode('', $chars);
         }
+
         return $chars;
     }
 
@@ -267,6 +279,7 @@ abstract class AbstractConsole
             unset($buf[count($buf) - 1]);
             $buf = implode("\n", $buf);
         }
+
         return trim($buf);
     }
 
@@ -278,10 +291,12 @@ abstract class AbstractConsole
     public function getGlobalBuffer()
     {
         $this->global_buffer->rewind();
+
         $output = '';
         while (!$this->global_buffer->eof()) {
             $output .= $this->global_buffer->fgets();
         }
+
         return mb_convert_encoding($output, 'UTF-8', 'UTF-8');
     }
 
@@ -293,55 +308,65 @@ abstract class AbstractConsole
         if ($prompt === null) {
             $prompt = $this->prompt;
         }
+
         $this->readTo($prompt, $timeout);
+
         return $this->buffer;
     }
 
-    function runAfterLoginCommands($password) {
+    function runAfterLoginCommands($password)
+    {
         foreach ($this->helper->getAfterLoginCommands() as $command) {
-            if(is_string($command)) {
+            if (is_string($command)) {
                 $this->exec($command);
             }
-            if(is_array($command)) {
+
+            if (is_array($command)) {
                 $prompt = null;
-                if(isset($command['prompt']) && $command['prompt']) {
+
+                if (isset($command['prompt']) && $command['prompt']) {
                     $prompt = $command['prompt'];
                 }
-                if(isset($command['check_password'])) {
-                    $this->write($command['command']);
+
+                if (isset($command['check_password'])) {
+                    $this->write($command['command'], true);
                     $readed = $this->waitPrompt("({$this->helper->getPrompt()}|{$this->helper->getPasswordPrompt()})");
 
-                    if(strpos($readed, "word") !== false) {
+                    if (strpos($readed, "word") !== false) {
                         $this->exec($password, true, $prompt);
                     }
+
                     continue;
                 }
 
-                if(isset($command['no_wait']) && $command['no_wait']) {
+                if (isset($command['no_wait']) && $command['no_wait']) {
                     $this->write($command['command'], true);
                 } else {
                     $this->exec($command['command'], true, $prompt);
                 }
 
-                if(isset($command['usleep']) && $command['usleep']) {
+                if (isset($command['usleep']) && $command['usleep']) {
                     usleep($command['usleep']);
                 }
             }
         }
+
         return $this;
     }
-    function runBeforeLogountCommands() {
+
+    function runBeforeLogountCommands()
+    {
         foreach ($this->helper->getBeforeLogoutCommands() as $command) {
-            if(is_string($command)) {
+            if (is_string($command)) {
                 $this->exec($command);
             }
-            if(is_array($command)) {
-                if(isset($command['no_wait']) && $command['no_wait']) {
-                    $this->write($command['command']);
+            if (is_array($command)) {
+                if (isset($command['no_wait']) && $command['no_wait']) {
+                    $this->write($command['command'], true);
                 } else {
                     $this->exec($command['command']);
                 }
-                if(isset($command['usleep']) && $command['usleep']) {
+                if (isset($command['usleep']) && $command['usleep']) {
                     usleep($command['usleep']);
                 }
             }
@@ -351,11 +376,13 @@ abstract class AbstractConsole
 
     abstract function disconnect();
 
+    protected abstract function readTo($prompt);
+
     abstract function write($command, $add_newline);
 
     abstract function setWindowSize($wide, $high);
 
-    abstract function connect($host, $port, HelperInterface $helper = null);
+    abstract function connect($host, $port, DefaultHelperInterface $helper = null);
 
     abstract function login($username, $password);
 }

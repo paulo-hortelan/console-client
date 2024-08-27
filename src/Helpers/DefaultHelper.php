@@ -2,11 +2,12 @@
 
 namespace Meklis\Network\Console\Helpers;
 
-class DefaultHelper implements HelperInterface
+class DefaultHelper implements DefaultHelperInterface
 {
     protected $prompt = '[%>#$]';
     protected $userPrompt = 'ame:';
     protected $passwordPrompt = 'ord:';
+    protected $loginCommands = [];
     protected $stripPrompt = true;
     protected $afterLoginCommands = [];
     protected $beforeLogoutCommands = [];
@@ -32,7 +33,6 @@ class DefaultHelper implements HelperInterface
         return $this;
     }
 
-
     /**
      * @return string
      */
@@ -40,8 +40,6 @@ class DefaultHelper implements HelperInterface
     {
         return $this->prompt;
     }
-
-
 
     /**
      * @return bool
@@ -85,6 +83,19 @@ class DefaultHelper implements HelperInterface
         return $this->afterLoginCommands;
     }
 
+    /**
+     * @return array
+     */
+    public function getLoginCommands(string $username = null, string $password = null)
+    {
+        if (!empty($username) && !empty($password)) {
+            foreach ($this->loginCommands as &$loginCommand) {
+                $loginCommand['command'] = str_replace(['{username}', '{password}'], [$username, $password], $loginCommand['command']);
+            }
+        }
+
+        return $this->loginCommands;
+    }
 
     /**
      * @return array
@@ -94,7 +105,6 @@ class DefaultHelper implements HelperInterface
         return $this->beforeLogoutCommands;
     }
 
-
     /**
      * @return bool
      */
@@ -102,7 +112,6 @@ class DefaultHelper implements HelperInterface
     {
         return $this->doubleLoginPrompt;
     }
-
 
     /**
      * @return bool
@@ -188,7 +197,8 @@ class DefaultHelper implements HelperInterface
         return $this;
     }
 
-    public function setEol($eol) {
+    public function setEol($eol)
+    {
         $this->eol = "\r\n";
     }
 
@@ -209,7 +219,4 @@ class DefaultHelper implements HelperInterface
         $this->ignoreEOF = $ignoreEOF;
         return $this;
     }
-
-
-
 }

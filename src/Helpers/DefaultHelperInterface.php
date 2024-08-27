@@ -2,7 +2,7 @@
 
 namespace Meklis\Network\Console\Helpers;
 
-interface HelperInterface
+interface DefaultHelperInterface
 {
 
     /**
@@ -23,8 +23,12 @@ interface HelperInterface
     /**
      * @return array
      */
-    public function getAfterLoginCommands();
+    public function getLoginCommands(string $username, string $password);
 
+    /**
+     * @return array
+     */
+    public function getAfterLoginCommands();
 
     /**
      * @return array
@@ -35,7 +39,6 @@ interface HelperInterface
      * @return bool
      */
     public function isDoubleLoginPrompt();
-
 
     /**
      * @return bool
@@ -48,10 +51,24 @@ interface HelperInterface
     public function getEol();
 
     /**
+     * @return bool
+     */
+    public function isIgnoreEOF();
+
+    /**
+     * @return bool
+     */
+    public function isStripPrompt();
+
+    /**
      * @return int[] | null
      */
     public function getWindowSize();
 
+    /**
+     * @return mixed
+     */
+    public function getWaitingResponseTimeout();
 
     /**
      * @return mixed
@@ -63,7 +80,6 @@ interface HelperInterface
      * @return self
      */
     public function setConnectionType($connectionType);
-
 
     /**
      * @param array $afterLoginCommands
@@ -79,7 +95,7 @@ interface HelperInterface
      */
     public function addAfterLoginCommand($command, $no_wait = false, $usleep_after = 0);
 
-
     public function getPaginationDetect();
+
     public function setPaginationDetect(string $paginationDetect);
 }
