@@ -7,6 +7,7 @@ use Meklis\Network\Console\Helpers\DefaultHelperInterface;
 class SSH extends AbstractConsole
 {
     protected $session = null;
+
     protected $connection = null;
 
     public function __construct($timeout = 10, $stream_timeout = 1.0)
@@ -18,14 +19,14 @@ class SSH extends AbstractConsole
     public function connect($host, $port = 22, ?DefaultHelperInterface $helper = null)
     {
         if ($helper) {
-            $helper->setConnectionType("ssh");
+            $helper->setConnectionType('ssh');
             $this->helper = $helper;
         }
 
         $this->host = $host;
         $this->port = $port;
         // check if we need to convert host to IP
-        if (!preg_match('/([0-9]{1,3}\\.){3,3}[0-9]{1,3}/', $this->host)) {
+        if (! preg_match('/([0-9]{1,3}\\.){3,3}[0-9]{1,3}/', $this->host)) {
             $ip = gethostbyname($this->host);
 
             if ($this->host == $ip) {
@@ -41,8 +42,8 @@ class SSH extends AbstractConsole
         ];
 
         $ssh = ssh2_connect($this->host, $this->port, $methods);
-        if (!$ssh) {
-            throw new \Exception("Error connect");
+        if (! $ssh) {
+            throw new \Exception('Error connect');
         }
 
         ini_set('default_socket_timeout', $originalConnectionTimeout);
@@ -61,7 +62,7 @@ class SSH extends AbstractConsole
         return $this;
     }
 
-    function login($username, $password)
+    public function login($username, $password)
     {
         if ($sizes = $this->helper->getWindowSize()) {
             $wide = $sizes[0];
@@ -73,8 +74,8 @@ class SSH extends AbstractConsole
             $sizeType = 0;
         }
 
-        if (!ssh2_auth_password($this->connection, $username, $password)) {
-            throw new \Exception("Error auth");
+        if (! ssh2_auth_password($this->connection, $username, $password)) {
+            throw new \Exception('Error auth');
         }
         $this->session = ssh2_shell($this->connection, '', null, $wide, $high, $sizeType);
 
@@ -89,14 +90,14 @@ class SSH extends AbstractConsole
         } catch (\Exception $e) {
             throw new \Exception("Login failed. ({$e->getMessage()})");
         }
+
         return $this->runAfterLoginCommands($password);
     }
 
     /**
-     * @param DefaultHelperInterface $helper
      * @return $this
      */
-    function setDeviceHelper(DefaultHelperInterface $helper)
+    public function setDeviceHelper(DefaultHelperInterface $helper)
     {
         $this->helper = $helper;
         if ($this->helper->getEol()) {
@@ -106,7 +107,7 @@ class SSH extends AbstractConsole
             $this->prompt = $this->helper->getPrompt();
         }
         $this->enableMagicControl = $this->helper->isEnableMagicControl();
-        $this->helper->setConnectionType("ssh");
+        $this->helper->setConnectionType('ssh');
 
         return $this;
     }
@@ -115,45 +116,47 @@ class SSH extends AbstractConsole
      * Closes IP socket
      *
      * @return $this
+     *
      * @throws \Exception
      */
     public function disconnect()
     {
         if ($this->session) {
             $this->runBeforeLogountCommands();
-            if (!fclose($this->session)) {
-                throw new \Exception("Error while closing telnet socket");
+            if (! fclose($this->session)) {
+                throw new \Exception('Error while closing telnet socket');
             }
             $this->session = null;
         }
         if ($this->connection) {
             ssh2_disconnect($this->connection);
         }
+
         return $this;
     }
 
     /**
      * Change terminal window size
      *
-     * @param $wide
-     * @param $high
      * @return $this
+     *
      * @throws \Exception
      */
     public function setWindowSize($wide = 80, $high = 40)
     {
-        fwrite($this->session, $this->IAC . $this->WILL . $this->NAWS);
+        fwrite($this->session, $this->IAC.$this->WILL.$this->NAWS);
         $c = $this->getc();
         if ($c != $this->IAC) {
-            throw new \Exception('Error: unknown control character ' . ord($c));
+            throw new \Exception('Error: unknown control character '.ord($c));
         }
         $c = $this->getc();
         if ($c == $this->DONT || $c == $this->WONT) {
-            throw new \Exception("Error: server refuses to use NAWS");
+            throw new \Exception('Error: server refuses to use NAWS');
         } elseif ($c != $this->DO && $c != $this->WILL) {
-            throw  new \Exception('Error: unknown control character ' . ord($c));
+            throw new \Exception('Error: unknown control character '.ord($c));
         }
-        fwrite($this->session, $this->IAC . $this->SB . $this->NAWS . 0 . $wide . 0 . $high . $this->IAC . $this->SE);
+        fwrite($this->session, $this->IAC.$this->SB.$this->NAWS. 0 .$wide. 0 .$high.$this->IAC.$this->SE);
+
         return $this;
     }
 
@@ -174,25 +177,25 @@ class SSH extends AbstractConsole
         stream_set_timeout($this->session, $ts);
         TRY_READ:
         $c = fread($this->session, 1024);
-        if (!$c && time() <= $until_t) {
+        if (! $c && time() <= $until_t) {
             usleep(100);
             goto TRY_READ;
         }
         $this->global_buffer->fwrite($c);
+
         return $c;
     }
 
-
     /**
-     * @param $prompt
-     * @param $timout
+     * @param  $timout
      * @return $this|null
+     *
      * @throws \Exception
      */
     protected function readTo($prompt, $timeout = null)
     {
-        if (!$this->session) {
-            throw new \Exception("SSH connection closed");
+        if (! $this->session) {
+            throw new \Exception('SSH connection closed');
         }
 
         // clear the buffer
@@ -213,7 +216,7 @@ class SSH extends AbstractConsole
 
             $c = $this->getc($timeout);
             if ($c === false) {
-                if (empty($prompt) && !$this->detectPagination()) {
+                if (empty($prompt) && ! $this->detectPagination()) {
                     return $this;
                 }
             }
@@ -233,34 +236,36 @@ class SSH extends AbstractConsole
                 continue;
             }
             // we've encountered the prompt. Break out of the loop
-            if (!empty($prompt) && preg_match("/{$prompt}/m", trim($latestBytes))) {
+            if (! empty($prompt) && preg_match("/{$prompt}/m", trim($latestBytes))) {
                 return $this;
             }
         } while ($c != $this->NULL || $c != $this->DC1);
+
         return null;
     }
 
-    function detectPagination()
+    public function detectPagination()
     {
         $latestBytes = $this->removeNotASCIISymbols(substr($this->buffer, -70));
         if ($this->helper->getPaginationDetect()) {
             if (preg_match($this->helper->getPaginationDetect(), $latestBytes)) {
-                if (!fwrite($this->session, "\n") < 0) {
-                    throw new \Exception("Error writing to session");
+                if (! fwrite($this->session, "\n") < 0) {
+                    throw new \Exception('Error writing to session');
                 }
                 $this->buffer = preg_replace($this->helper->getPaginationDetect(), "\n", $this->buffer);
+
                 return true;
             }
         }
+
         return false;
     }
 
     /**
      * Write to console
      *
-     * @param $buffer
-     * @param $add_newline
      * @return $this
+     *
      * @throws \Exception
      */
     public function write($buffer, $add_newline = true)
@@ -280,9 +285,8 @@ class SSH extends AbstractConsole
         } catch (\Throwable $e) {
         }
 
-
-        if (!fwrite($this->session, $buffer) < 0) {
-            throw new \Exception("Error writing to session");
+        if (! fwrite($this->session, $buffer) < 0) {
+            throw new \Exception('Error writing to session');
         }
 
         return $this;
@@ -290,18 +294,20 @@ class SSH extends AbstractConsole
 
     protected function negotiateSSHOptions()
     {
-        if (!$this->enableMagicControl) return $this;
+        if (! $this->enableMagicControl) {
+            return $this;
+        }
 
         $c = $this->getc();
         if ($c != $this->IAC) {
             if (($c == $this->DO) || ($c == $this->DONT)) {
                 $opt = $this->getc();
-                fwrite($this->session, $this->IAC . $this->WONT . $opt);
-            } else if (($c == $this->WILL) || ($c == $this->WONT)) {
+                fwrite($this->session, $this->IAC.$this->WONT.$opt);
+            } elseif (($c == $this->WILL) || ($c == $this->WONT)) {
                 $opt = $this->getc();
-                fwrite($this->session, $this->IAC . $this->DONT . $opt);
+                fwrite($this->session, $this->IAC.$this->DONT.$opt);
             } else {
-                throw new \Exception('Error: unknown control character ' . ord($c));
+                throw new \Exception('Error: unknown control character '.ord($c));
             }
         } else {
             throw new \Exception('Error: Something Wicked Happened');
@@ -310,7 +316,7 @@ class SSH extends AbstractConsole
         return $this;
     }
 
-    function enableCatchErrors()
+    public function enableCatchErrors()
     {
         set_error_handler(function ($errno, $errstr, $errfile, $errline) {
             throw new \ErrorException($errstr, 0, $errno, $errfile, $errline);

@@ -8,8 +8,11 @@ use Meklis\Network\Console\Helpers\DefaultHelperInterface;
 abstract class AbstractConsole
 {
     protected $host;
+
     protected $port;
+
     protected $timeout;
+
     protected $stream_timeout_sec;
 
     /**
@@ -18,20 +21,35 @@ abstract class AbstractConsole
     protected $helper;
 
     protected $buffer = null;
+
     protected $prompt;
+
     protected $errno;
+
     protected $errstr;
+
     protected $eol = "\n";
+
     protected $enableMagicControl = true;
+
     protected $NULL;
+
     protected $DC1;
+
     protected $WILL;
+
     protected $WONT;
+
     protected $DO;
+
     protected $DONT;
+
     protected $IAC;
+
     protected $SB;
+
     protected $NAWS;
+
     protected $SE;
 
     protected $global_buffer;
@@ -40,10 +58,11 @@ abstract class AbstractConsole
      * Constructor. Initialises host, port and timeout parameters
      * defaults to localhost port 23 (standard telnet port)
      *
-     * @param string $host Host name or IP addres
-     * @param int $port TCP port number
-     * @param int $timeout Connection timeout in seconds
-     * @param float $stream_timeout Stream timeout in decimal seconds
+     * @param  string  $host  Host name or IP addres
+     * @param  int  $port  TCP port number
+     * @param  int  $timeout  Connection timeout in seconds
+     * @param  float  $stream_timeout  Stream timeout in decimal seconds
+     *
      * @throws \Exception
      */
     public function __construct($timeout = 10, $stream_timeout = 1.0)
@@ -65,14 +84,13 @@ abstract class AbstractConsole
 
         // open global buffer stream
         $this->global_buffer = new \SplFileObject('php://temp', 'r+b');
-        $this->helper = new DefaultHelper();
+        $this->helper = new DefaultHelper;
     }
 
     /**
-     * @param DefaultHelperInterface $helper
      * @return $this
      */
-    function setDeviceHelper(DefaultHelperInterface $helper)
+    public function setDeviceHelper(DefaultHelperInterface $helper)
     {
         $this->helper = $helper;
 
@@ -113,6 +131,7 @@ abstract class AbstractConsole
     public function disableMagicControl()
     {
         $this->enableMagicControl = false;
+
         return $this;
     }
 
@@ -124,6 +143,7 @@ abstract class AbstractConsole
     public function enableMagicControl()
     {
         $this->enableMagicControl = true;
+
         return $this;
     }
 
@@ -135,6 +155,7 @@ abstract class AbstractConsole
     public function setLinuxEOL()
     {
         $this->eol = "\n";
+
         return $this;
     }
 
@@ -146,6 +167,7 @@ abstract class AbstractConsole
     public function setWinEOL()
     {
         $this->eol = "\r\n";
+
         return $this;
     }
 
@@ -153,8 +175,8 @@ abstract class AbstractConsole
      * Executes command and returns a string with result.
      * This method is a wrapper for lower level private methods
      *
-     * @param string $command Command to execute
-     * @param boolean $add_newline Default true, adds newline to the command
+     * @param  string  $command  Command to execute
+     * @param  bool  $add_newline  Default true, adds newline to the command
      * @return string Command result
      */
     public function exec($command, $add_newline = true, $prompt = null)
@@ -162,13 +184,13 @@ abstract class AbstractConsole
         $this->write($command, $add_newline);
         $this->waitPrompt($prompt);
 
-        $buffer =  $this->getBuffer();
+        $buffer = $this->getBuffer();
         if ($lines = explode("\n", $buffer)) {
             if (isset($lines[0]) && trim($command) && strpos($lines[0], $command) !== false) {
                 unset($lines[0]);
             }
 
-            return  $this->removeNotASCIISymbols(implode("\n", $lines));
+            return $this->removeNotASCIISymbols(implode("\n", $lines));
         }
 
         return $this->removeNotASCIISymbols($buffer);
@@ -177,13 +199,14 @@ abstract class AbstractConsole
     /**
      * Executes command and doesn't treat the response
      *
-     * @param string $command Command to execute
-     * @param boolean $add_newline Default true, adds newline to the command
+     * @param  string  $command  Command to execute
+     * @param  bool  $add_newline  Default true, adds newline to the command
      * @return string Command result
      */
     public function execWithoutResponse($command, $add_newline = true)
     {
         $this->write($command, $add_newline);
+
         return true;
     }
 
@@ -191,8 +214,8 @@ abstract class AbstractConsole
      * Executes command and returns a string with result.
      * Waiting to return with stream timeout
      *
-     * @param string $command Command to execute
-     * @param boolean $add_newline Default true, adds newline to the command
+     * @param  string  $command  Command to execute
+     * @param  bool  $add_newline  Default true, adds newline to the command
      * @return string Command result
      */
     public function execWaiting($command, $add_newline = true, $timeoutStream = null)
@@ -200,13 +223,13 @@ abstract class AbstractConsole
         $this->write($command, $add_newline);
         $this->waitPrompt('', $timeoutStream);
 
-        $buffer =  $this->getBuffer();
+        $buffer = $this->getBuffer();
         if ($lines = explode("\n", $buffer)) {
             if (isset($lines[0]) && trim($command) && strpos($lines[0], $command) !== false) {
                 unset($lines[0]);
             }
 
-            return  $this->removeNotASCIISymbols(implode("\n", $lines));
+            return $this->removeNotASCIISymbols(implode("\n", $lines));
         }
 
         return $this->removeNotASCIISymbols($buffer);
@@ -214,11 +237,11 @@ abstract class AbstractConsole
 
     protected function removeNotASCIISymbols($chars)
     {
-        if (!mb_detect_encoding($chars, 'ASCII', true)) {
+        if (! mb_detect_encoding($chars, 'ASCII', true)) {
 
             $chars = str_split($chars);
             foreach ($chars as $num => $char) {
-                if (!mb_detect_encoding($char, 'ASCII', true)) {
+                if (! mb_detect_encoding($char, 'ASCII', true)) {
                     unset($chars[$num]);
                 }
             }
@@ -233,12 +256,13 @@ abstract class AbstractConsole
      * Sets the string of characters to respond to.
      * This should be set to the last character of the command line prompt
      *
-     * @param string $str String to respond to
+     * @param  string  $str  String to respond to
      * @return $this
      */
     public function setPrompt($str)
     {
         $this->setRegexPrompt(preg_quote($str, '/'));
+
         return $this;
     }
 
@@ -246,26 +270,26 @@ abstract class AbstractConsole
      * Sets a regex string to respond to.
      * This should be set to the last line of the command line prompt.
      *
-     * @param string $str Regex string to respond to
+     * @param  string  $str  Regex string to respond to
      * @return $this
      */
     public function setRegexPrompt($str)
     {
         $this->prompt = $str;
+
         return $this;
     }
 
     /**
      * Sets the stream timeout.
      *
-     * @param float $timeout
+     * @param  float  $timeout
      * @return void
      */
     public function setStreamTimeout($timeout)
     {
-        $this->stream_timeout_sec = (int)$timeout;
+        $this->stream_timeout_sec = (int) $timeout;
     }
-
 
     /**
      * Clears internal command buffer
@@ -275,6 +299,7 @@ abstract class AbstractConsole
     public function clearBuffer()
     {
         $this->buffer = '';
+
         return $this;
     }
 
@@ -283,7 +308,7 @@ abstract class AbstractConsole
      *
      * @return string Content of the command buffer
      */
-    function getBuffer()
+    public function getBuffer()
     {
         // Remove all carriage returns from line breaks
         $buf = str_replace(["\n\r", "\r\n", "\n", "\r"], "\n", $this->buffer);
@@ -307,7 +332,7 @@ abstract class AbstractConsole
         $this->global_buffer->rewind();
 
         $output = '';
-        while (!$this->global_buffer->eof()) {
+        while (! $this->global_buffer->eof()) {
             $output .= $this->global_buffer->fgets();
         }
 
@@ -328,7 +353,7 @@ abstract class AbstractConsole
         return $this->buffer;
     }
 
-    function runAfterLoginCommands($password)
+    public function runAfterLoginCommands($password)
     {
         foreach ($this->helper->getAfterLoginCommands() as $command) {
             if (is_string($command)) {
@@ -346,7 +371,7 @@ abstract class AbstractConsole
                     $this->write($command['command'], true);
                     $readed = $this->waitPrompt("({$this->helper->getPrompt()}|{$this->helper->getPasswordPrompt()})");
 
-                    if (strpos($readed, "word") !== false) {
+                    if (strpos($readed, 'word') !== false) {
                         $this->exec($password, true, $prompt);
                     }
 
@@ -368,7 +393,7 @@ abstract class AbstractConsole
         return $this;
     }
 
-    function runBeforeLogountCommands()
+    public function runBeforeLogountCommands()
     {
         foreach ($this->helper->getBeforeLogoutCommands() as $command) {
             if (is_string($command)) {
@@ -385,18 +410,19 @@ abstract class AbstractConsole
                 }
             }
         }
+
         return $this;
     }
 
-    abstract function disconnect();
+    abstract public function disconnect();
 
-    protected abstract function readTo($prompt);
+    abstract protected function readTo($prompt);
 
-    abstract function write($command, $add_newline);
+    abstract public function write($command, $add_newline);
 
-    abstract function setWindowSize($wide, $high);
+    abstract public function setWindowSize($wide, $high);
 
-    abstract function connect($host, $port, DefaultHelperInterface $helper = null);
+    abstract public function connect($host, $port, ?DefaultHelperInterface $helper = null);
 
-    abstract function login($username, $password);
+    abstract public function login($username, $password);
 }

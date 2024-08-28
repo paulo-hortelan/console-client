@@ -2,7 +2,4 @@
 
 namespace Meklis\Network\Console;
 
-interface ConsoleInterface
-{
-
-}
+interface ConsoleInterface {}

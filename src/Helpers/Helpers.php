@@ -30,15 +30,16 @@ class Helpers
     ];
 
     /**
-     * @param $name
      * @return HelperInterface
+     *
      * @throws \Exception
      */
     public static function getByName($name)
     {
-        if (!isset(self::$helpers[$name])) {
+        if (! isset(self::$helpers[$name])) {
             throw new \Exception("Helper with name $name not found");
         }
-        return new self::$helpers[$name]();
+
+        return new self::$helpers[$name];
     }
 }

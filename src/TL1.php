@@ -24,7 +24,7 @@ class TL1 extends AbstractConsole implements ConsoleInterface
         $this->host = $host;
         $this->port = $port;
         // check if we need to convert host to IP
-        if (!preg_match('/([0-9]{1,3}\\.){3,3}[0-9]{1,3}/', $this->host)) {
+        if (! preg_match('/([0-9]{1,3}\\.){3,3}[0-9]{1,3}/', $this->host)) {
             $ip = gethostbyname($this->host);
 
             if ($this->host == $ip) {
@@ -46,7 +46,7 @@ class TL1 extends AbstractConsole implements ConsoleInterface
 
         // attempt connection - suppress warnings
         $this->socket = @fsockopen($this->host, $this->port, $this->errno, $this->errstr, $this->timeout);
-        if (!$this->socket) {
+        if (! $this->socket) {
             throw new \Exception("Cannot connect to $this->host on port $this->port");
         }
 
@@ -61,40 +61,42 @@ class TL1 extends AbstractConsole implements ConsoleInterface
      * Closes IP socket
      *
      * @return $this
+     *
      * @throws \Exception
      */
     public function disconnect()
     {
         if ($this->socket) {
             $this->runBeforeLogountCommands();
-            if (!fclose($this->socket)) {
-                throw new \Exception("Error while closing telnet socket");
+            if (! fclose($this->socket)) {
+                throw new \Exception('Error while closing telnet socket');
             }
             $this->socket = null;
         }
+
         return $this;
     }
 
     /**
-     * @param $wide
-     * @param $high
      * @return $this
+     *
      * @throws \Exception
      */
     public function setWindowSize($wide = 80, $high = 40)
     {
-        fwrite($this->socket, $this->IAC . $this->WILL . $this->NAWS);
+        fwrite($this->socket, $this->IAC.$this->WILL.$this->NAWS);
         $c = $this->getc();
         if ($c != $this->IAC) {
-            throw new \Exception('Error: unknown control character ' . ord($c));
+            throw new \Exception('Error: unknown control character '.ord($c));
         }
         $c = $this->getc();
         if ($c == $this->DONT || $c == $this->WONT) {
-            throw new \Exception("Error: server refuses to use NAWS");
+            throw new \Exception('Error: server refuses to use NAWS');
         } elseif ($c != $this->DO && $c != $this->WILL) {
-            throw  new \Exception('Error: unknown control character ' . ord($c));
+            throw new \Exception('Error: unknown control character '.ord($c));
         }
-        fwrite($this->socket, $this->IAC . $this->SB . $this->NAWS . 0 . $wide . 0 . $high . $this->IAC . $this->SE);
+        fwrite($this->socket, $this->IAC.$this->SB.$this->NAWS. 0 .$wide. 0 .$high.$this->IAC.$this->SE);
+
         return $this;
     }
 
@@ -104,10 +106,11 @@ class TL1 extends AbstractConsole implements ConsoleInterface
      * modified to reflect telnet implementation details like login/password
      * and line prompts. Defaults to standard unix non-root prompts
      *
-     * @param string $username Username
-     * @param string $password Password
-     * @param string $host_type Type of destination host
+     * @param  string  $username  Username
+     * @param  string  $password  Password
+     * @param  string  $host_type  Type of destination host
      * @return $this
+     *
      * @throws \Exception
      */
     public function login($username, $password)
@@ -143,7 +146,7 @@ class TL1 extends AbstractConsole implements ConsoleInterface
      */
     protected function getc($timeoutSec = null)
     {
-        if (!$timeoutSec) {
+        if (! $timeoutSec) {
             $timeoutSec = $this->stream_timeout_sec;
         }
         stream_set_timeout($this->socket, $timeoutSec);
@@ -152,18 +155,18 @@ class TL1 extends AbstractConsole implements ConsoleInterface
             $this->global_buffer->fwrite($c);
         } catch (\Throwable $e) {
         }
+
         return $c;
     }
 
     /**
      * Reads characters from the socket and adds them to command buffer.
      * Handles telnet control characters. Stops when prompt is ecountered.
-     *
      */
     protected function readTo($prompt, $timeoutSec = null)
     {
-        if (!$this->socket) {
-            throw new \Exception("Telnet connection closed");
+        if (! $this->socket) {
+            throw new \Exception('Telnet connection closed');
         }
 
         // clear the buffer
@@ -192,9 +195,10 @@ class TL1 extends AbstractConsole implements ConsoleInterface
                     if ($eofDetected > 50000) {
                         throw new \Exception("Host {$this->host} send EOF within send all data");
                     }
+
                     continue;
                 } else {
-                    throw new \Exception("Couldn't find the requested : '" . $prompt . "', it was not in the data returned from server: " . $this->buffer);
+                    throw new \Exception("Couldn't find the requested : '".$prompt."', it was not in the data returned from server: ".$this->buffer);
                 }
             }
 
@@ -211,30 +215,30 @@ class TL1 extends AbstractConsole implements ConsoleInterface
             if ($this->helper->getPaginationDetect()) {
                 if (preg_match($this->helper->getPaginationDetect(), $latestBytes)) {
                     $this->buffer = preg_replace($this->helper->getPaginationDetect(), "\n", trim($this->buffer));
-                    if (!fwrite($this->socket, $this->eol) < 0) {
-                        throw new \Exception("Error writing to socket");
+                    if (! fwrite($this->socket, $this->eol) < 0) {
+                        throw new \Exception('Error writing to socket');
                     }
+
                     continue;
                 }
             }
 
             // we've encountered the prompt. Break out of the loop
-            if (!empty($prompt) && preg_match("/{$prompt}/m", trim($latestBytes))) {
+            if (! empty($prompt) && preg_match("/{$prompt}/m", trim($latestBytes))) {
                 return $this;
             }
         } while ($c != $this->NULL || $c != $this->DC1);
     }
 
     /**
-     * @param $buffer
-     * @param $add_newline
      * @return $this
+     *
      * @throws \Exception
      */
     public function write($buffer, $add_newline = true)
     {
         if ($this->socket === null) {
-            throw new \Exception("Telnet connection closed! Check you call method connect() before any calling");
+            throw new \Exception('Telnet connection closed! Check you call method connect() before any calling');
         }
         // clear buffer from last command
         $this->clearBuffer();
@@ -248,8 +252,8 @@ class TL1 extends AbstractConsole implements ConsoleInterface
         } catch (\Throwable $e) {
         }
 
-        if (!fwrite($this->socket, $buffer) < 0) {
-            throw new \Exception("Error writing to socket");
+        if (! fwrite($this->socket, $buffer) < 0) {
+            throw new \Exception('Error writing to socket');
         }
 
         return $this;
@@ -259,23 +263,27 @@ class TL1 extends AbstractConsole implements ConsoleInterface
      * Telnet control character magic
      *
      * @return bool
+     *
      * @throws \Exception
+     *
      * @internal param string $command Character to check
      */
     protected function negotiateTelnetOptions()
     {
-        if (!$this->enableMagicControl) return true;
+        if (! $this->enableMagicControl) {
+            return true;
+        }
 
         $c = $this->getc();
         if ($c != $this->IAC) {
             if (($c == $this->DO) || ($c == $this->DONT)) {
                 $opt = $this->getc();
-                fwrite($this->socket, $this->IAC . $this->WONT . $opt);
-            } else if (($c == $this->WILL) || ($c == $this->WONT)) {
+                fwrite($this->socket, $this->IAC.$this->WONT.$opt);
+            } elseif (($c == $this->WILL) || ($c == $this->WONT)) {
                 $opt = $this->getc();
-                fwrite($this->socket, $this->IAC . $this->DONT . $opt);
+                fwrite($this->socket, $this->IAC.$this->DONT.$opt);
             } else {
-                throw new \Exception('ErrorNegotiate: unknown control character ' . ord($c));
+                throw new \Exception('ErrorNegotiate: unknown control character '.ord($c));
             }
         } else {
             throw new \Exception('ErrorNegotiate: Something Wicked Happened');

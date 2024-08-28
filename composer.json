@@ -19,5 +19,8 @@
         "ext-ssh2": "*",
         "ext-mbstring": "*",
         "ext-sockets": "*"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.17"
     }
 }
