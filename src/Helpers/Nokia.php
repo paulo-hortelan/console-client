@@ -4,11 +4,10 @@ namespace Meklis\Network\Console\Helpers;
 
 class Nokia extends DefaultHelper
 {
-    protected $prompt = '[>#]';
+    protected $prompt = '[#]';
     protected $userPrompt = 'login:';
     protected $passwordPrompt = 'password:';
     protected $afterLoginCommands = [
-        'terminal length 0',
         'environment inhibit-alarms'
     ];
     protected $eol = "\n";
