@@ -176,7 +176,6 @@ abstract class AbstractConsole
 
     /**
      * Executes command and doesn't treat the response
-     * This method is a wrapper for lower level private methods
      *
      * @param string $command Command to execute
      * @param boolean $add_newline Default true, adds newline to the command

@@ -147,12 +147,16 @@ class Telnet extends AbstractConsole implements ConsoleInterface
         if (!$timeoutSec) {
             $timeoutSec = $this->stream_timeout_sec;
         }
+
         stream_set_timeout($this->socket, $timeoutSec);
+
         $c = fgetc($this->socket);
+
         try {
             $this->global_buffer->fwrite($c);
         } catch (\Throwable $e) {
         }
+
         return $c;
     }
 
@@ -179,19 +183,24 @@ class Telnet extends AbstractConsole implements ConsoleInterface
 
             $c = $this->getc($timeoutSec);
             if ($c === false) {
+
                 if (empty($prompt)) {
                     return $this;
                 }
+
                 $info = stream_get_meta_data($this->socket);
                 if ($info['timed_out']) {
                     throw new \Exception("Stream timeout {$this->stream_timeout_sec}sec is reached :-(");
                 }
+
                 if ($this->helper->isIgnoreEOF()) {
                     usleep(1000);
+
                     $eofDetected++;
                     if ($eofDetected > 50000) {
                         throw new \Exception("Host {$this->host} send EOF within send all data");
                     }
+
                     continue;
                 } else {
                     throw new \Exception("Couldn't find the requested : '" . $prompt . "', it was not in the data returned from server: " . $this->buffer);
@@ -207,13 +216,16 @@ class Telnet extends AbstractConsole implements ConsoleInterface
 
             // append current char to global buffer
             $this->buffer .= $c;
+
             $latestBytes = $this->removeNotASCIISymbols(substr($this->buffer, -70));
             if ($this->helper->getPaginationDetect()) {
                 if (preg_match($this->helper->getPaginationDetect(), $latestBytes)) {
                     $this->buffer = preg_replace($this->helper->getPaginationDetect(), "\n", trim($this->buffer));
+
                     if (!fwrite($this->socket, $this->eol) < 0) {
                         throw new \Exception("Error writing to socket");
                     }
+
                     continue;
                 }
             }
